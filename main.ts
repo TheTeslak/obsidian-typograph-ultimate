@@ -62,8 +62,8 @@ export default class TypographPlugin extends Plugin {
     let changesCount = 0;
 
     // Replace spaces after short words (prepositions, articles, conjunctions) with non-breaking spaces
-    const shortWordsEnglish = /\b(and|the|a|an|to|at|in|on|by|of|for|from|as|with|but)\s+/gi;
-    text = text.replace(shortWordsEnglish, (match, p1) => {
+    const prepositionsEnglish = /\b(and|the|a|an|to|at|in|on|by|of|for|from|as|with|but)\s+/gi;
+    text = text.replace(prepositionsEnglish, (match, p1) => {
       changesCount++;
       return `${p1}\u00A0`;
     });
@@ -104,52 +104,60 @@ export default class TypographPlugin extends Plugin {
     return { text, changesCount };
   }
 
-// Function for typography rules specific to Russian
-typographyRussian(text: string): { text: string; changesCount: number } {
-  let changesCount = 0;
+  // Function for typography rules specific to Russian
+  typographyRussian(text: string): { text: string; changesCount: number } {
+    let changesCount = 0;
 
-  // Replace ": " or ", " before direct speech with the appropriate quotation marks
-  text = text.replace(/([:,])\s*"([^"]*)"/g, (match, p1, p2) => {
-    changesCount++;
-    return `${p1} «${p2}»`;
-  });
+    // Replace ": " or ", " before direct speech with the appropriate quotation marks
+    text = text.replace(/([:,])\s*"([^"]*)"/g, (match, p1, p2) => {
+      changesCount++;
+      return `${p1} «${p2}»`;
+    });
 
-  // Replace all double quotation marks with «...»
-  text = text.replace(/"([^"]*)"/g, (match, p1) => {
-    changesCount++;
-    return `«${p1}»`;
-  });
-  
     // Replace nested quotation marks inside «...» with „...“
-    text = text.replace(/«([^«»]*)»/g, (match, p1) => {
+    text = text.replace(/«([^«»][^„“]*)»/g, (match, p1) => {
       changesCount++;
       return `„${p1}“`;
     });
 
-  // Replace >> with » and << with «
-  text = text.replace(/>>/g, '»');
-  text = text.replace(/<</g, '«');
-  changesCount++;
+    // Replace all double quotation marks with «...»
+    text = text.replace(/"([^"]*)"/g, (match, p1) => {
+      changesCount++;
+      return `«${p1}»`;
+    });
 
-  // Replace spaces after short words (prepositions) with non-breaking spaces
-  const shortWordsRussian = /\b(в|и|к|с|у|о|на|по|за|от|для|до|со)\s+/gi;
-  text = text.replace(shortWordsRussian, (match, p1) => {
+
+    // Replace >> with » and << with «
+    text = text.replace(/>>/g, '»');
+    text = text.replace(/<</g, '«');
     changesCount++;
-    return `${p1}\u00A0`;
-  });
 
-  // Replace spaces between numbers and metric units with non-breaking spaces
-  text = text.replace(/(\d+)\s+(см|мм|м|км|кг|г|мг|фунт|унц)/g, (match, p1, p2) => {
-    changesCount++;
-    return `${p1}\u00A0${p2}`;
-  });
+    // Replace spaces after short words (prepositions) with non-breaking spaces
+    const prepositionsRussian = /(в|и|к|с|у|о|на|по|за|от|для|до|со)(\s+)/gi;
+    text = text.replace(prepositionsRussian, (match, p1, p2) => {
+      changesCount++;
+      return `${p1}\u00A0`; // Replace only the space after the word
+    });
 
-  // Replace -- and standalone - with —
-  text = text.replace(/--/g, '—'); // Replace double dash with long dash
-  text = text.replace(/(?<!>)\b-\b(?!<)/g, '—'); // Replace single dash with long dash, but avoid replacing within angle brackets
-  
-  return { text, changesCount };
-}
+    // Replace spaces between numbers and metric units with non-breaking spaces
+    text = text.replace(/(\d+)\s+(см|мм|м|км|кг|г|мг|фунт|унц)/g, (match, p1, p2) => {
+      changesCount++;
+      return `${p1}\u00A0${p2}`;
+    });
+
+    // Replace -- with — (em dash)
+    text = text.replace(/--/g, '—');
+    changesCount += (text.match(/--/g) || []).length;
+
+    // Replace standalone - with — (em dash), but preserve:
+    // 1. Dashes at the beginning of a line (for lists)
+    // 2. Dashes in number ranges (e.g., 1-5)
+    // 3. Dashes in compound words (e.g., что-то)
+    text = text.replace(/(?<!^|\d|[а-яА-ЯёЁ])-(?!\d|[а-яА-ЯёЁ])/gm, '—');
+    changesCount += (text.match(/(?<!^|\d|[а-яА-ЯёЁ])-(?!\d|[а-яА-ЯёЁ])/gm) || []).length;
+
+    return { text, changesCount };
+  }
 
   onunload() {
     console.log("Typograph plugin unloaded");
