@@ -1,0 +1,10 @@
+{
+	"id": "typograph",
+	"name": "Typograph Ultimate",
+	"version": "0.0.3",
+	"minAppVersion": "1.0.0",
+	"description": "Test",
+	"author": "Teslak",
+	"authorUrl": "https://teslak.me",
+	"isDesktopOnly": false
+}
